@@ -21,218 +21,166 @@ jobs:
     runs-on: ubuntu-22.04
     
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Build Environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential clang flex bison g++ gawk \
-          gcc-multilib gettext git libncurses-dev libssl-dev \
-          python3-distutils python3-pip python3-setuptools rsync \
-          swig unzip zlib1g-dev file wget time
-        sudo timedatectl set-timezone "$TZ"
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib gettext git libncurses-dev libssl-dev python3-distutils python3-pip python3-setuptools rsync swig unzip zlib1g-dev file wget time
+          sudo timedatectl set-timezone "$TZ"
 
-    - name: Clone OpenWrt
-      run: |
-        git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
-        cd openwrt
-        git checkout v23.05.5
+      - name: Clone OpenWrt
+        run: |
+          git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
+          cd openwrt
+          git checkout v23.05.5
 
-    - name: Add Samsung J5 Support
-      run: |
-        cd openwrt
-        
-        # Clone target support
-        git clone --depth 1 https://github.com/openwrt/openwrt.git temp
-        
-        # Setup msm8916 target
-        mkdir -p target/linux/msm8916
-        cp -r temp/target/linux/msm8916/* target/linux/msm8916/ 2>/dev/null || true
-        
-        # Copy device tree untuk Samsung
-        mkdir -p target/linux/msm8916/files/arch/arm/boot/dts
-        cp temp/target/linux/msm8916/files/arch/arm/boot/dts/qcom-msm8916-samsung-*.dts* \
-           target/linux/msm8916/files/arch/arm/boot/dts/ 2>/dev/null || true
-        
-        rm -rf temp
+      - name: Add Samsung J5 Support
+        run: |
+          cd openwrt
+          git clone --depth 1 https://github.com/openwrt/openwrt.git temp
+          mkdir -p target/linux/msm8916
+          cp -r temp/target/linux/msm8916/* target/linux/msm8916/ 2>/dev/null || true
+          mkdir -p target/linux/msm8916/files/arch/arm/boot/dts
+          cp temp/target/linux/msm8916/files/arch/arm/boot/dts/qcom-msm8916-samsung-*.dts* target/linux/msm8916/files/arch/arm/boot/dts/ 2>/dev/null || true
+          rm -rf temp
 
-    - name: Configure OpenWrt for J500G
-      run: |
-        cd openwrt
-        
-        # Konfigurasi untuk Samsung J500G
-        cat > .config << 'EOF'
-# Target System
-CONFIG_TARGET_msm8916=y
-CONFIG_TARGET_msm8916_DEVICE_samsung_j5nlte=y
-CONFIG_TARGET_MULTI_PROFILE=y
-CONFIG_TARGET_PER_DEVICE_ROOTFS=y
+      - name: Configure OpenWrt
+        run: |
+          cd openwrt
+          cat > .config << "EOF"
+          CONFIG_TARGET_msm8916=y
+          CONFIG_TARGET_msm8916_DEVICE_samsung_j5nlte=y
+          CONFIG_TARGET_MULTI_PROFILE=y
+          CONFIG_TARGET_PER_DEVICE_ROOTFS=y
+          CONFIG_BUSYBOX_CUSTOM=y
+          CONFIG_BUSYBOX_CONFIG_FBSET=y
+          CONFIG_BUSYBOX_CONFIG_USLEEP=y
+          CONFIG_LIBQMI_COLLECTION_FULL=y
+          CONFIG_LIBQMI_WITH_MBIM_QMUX=y
+          CONFIG_LIBQMI_WITH_QRTR_GLIB=y
+          CONFIG_MODEMMANAGER_WITH_MBIM=y
+          CONFIG_MODEMMANAGER_WITH_NETIFD=y
+          CONFIG_MODEMMANAGER_WITH_QMI=y
+          CONFIG_MODEMMANAGER_WITH_QRTR=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_PACKAGE_luci-ssl-openssl=y
+          CONFIG_PACKAGE_luci-theme-bootstrap=y
+          CONFIG_PACKAGE_luci-app-firewall=y
+          CONFIG_PACKAGE_luci-app-opkg=y
+          CONFIG_PACKAGE_iwinfo=y
+          CONFIG_PACKAGE_iw=y
+          CONFIG_PACKAGE_wpad-basic-mbedtls=y
+          CONFIG_PACKAGE_hostapd-common=y
+          CONFIG_PACKAGE_dnsmasq-full=y
+          CONFIG_PACKAGE_htop=y
+          CONFIG_PACKAGE_nano=y
+          CONFIG_PACKAGE_tcpdump=y
+          CONFIG_PACKAGE_curl=y
+          CONFIG_PACKAGE_wget=y
+          CONFIG_PACKAGE_kmod-usb-core=y
+          CONFIG_PACKAGE_kmod-usb2=y
+          CONFIG_PACKAGE_kmod-usb3=y
+          CONFIG_PACKAGE_kmod-usb-storage=y
+          CONFIG_PACKAGE_kmod-usb-serial=y
+          CONFIG_PACKAGE_kmod-usb-serial-option=y
+          CONFIG_PACKAGE_kmod-usb-serial-wwan=y
+          CONFIG_PACKAGE_kmod-qmi=y
+          CONFIG_PACKAGE_kmod-qmi_wwan=y
+          CONFIG_PACKAGE_kmod-qmi_wwan_q=y
+          CONFIG_PACKAGE_kmod-fs-ext4=y
+          CONFIG_PACKAGE_kmod-fs-vfat=y
+          CONFIG_PACKAGE_kmod-fs-ntfs=y
+          CONFIG_PACKAGE_kmod-msm-pil=y
+          CONFIG_PACKAGE_kmod-msm-wlan=y
+          CONFIG_PACKAGE_kmod-msm-thermal=y
+          CONFIG_PACKAGE_kmod-ath=y
+          CONFIG_PACKAGE_kmod-ath9k=y
+          CONFIG_PACKAGE_kmod-button-hotplug=y
+          CONFIG_PACKAGE_kmod-ledtrig-heartbeat=y
+          CONFIG_PACKAGE_kmod-ledtrig-netdev=y
+          CONFIG_PACKAGE_kmod-leds-gpio=y
+          CONFIG_PACKAGE_kmod-battery-msm=y
+          CONFIG_PACKAGE_kmod-power-reset-msm=y
+          CONFIG_PACKAGE_kmod-rtc-msm=y
+          CONFIG_PACKAGE_zram-swap=y
+          CONFIG_PACKAGE_ca-certificates=y
+          CONFIG_PACKAGE_block-mount=y
+          CONFIG_PACKAGE_gzip=y
+          CONFIG_PACKAGE_unzip=y
+          CONFIG_PACKAGE_zip=y
+          CONFIG_KERNEL_DEBUG_FS=n
+          CONFIG_KERNEL_DEBUG_KERNEL=n
+          CONFIG_KERNEL_KALLSYMS=n
+          CONFIG_KERNEL_PRINTK_TIME=y
+          CONFIG_IMAGE_OPTIMIZE=y
+          CONFIG_CCACHE=y
+          CONFIG_STRIP_KERNEL_EXPORTS=y
+          CONFIG_USE_MUSL=y
+          CONFIG_TARGET_OPTIMIZATION="-Os -pipe -march=armv7-a -mtune=cortex-a53 -mfpu=neon-vfpv4"
+          CONFIG_USE_SSTRIP=y
+          CONFIG_SSTRIP_ARGS="-z"
+          EOF
 
-# Base System
-CONFIG_BUSYBOX_CUSTOM=y
-CONFIG_BUSYBOX_CONFIG_FBSET=y
-CONFIG_BUSYBOX_CONFIG_USLEEP=y
+      - name: Update Feeds
+        run: |
+          cd openwrt
+          rm -rf tmp
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-# Network Libraries
-CONFIG_LIBQMI_COLLECTION_FULL=y
-CONFIG_LIBQMI_WITH_MBIM_QMUX=y
-CONFIG_LIBQMI_WITH_QRTR_GLIB=y
+      - name: Download Packages
+        run: |
+          cd openwrt
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec rm -f {} \; || true
 
-# Modem Manager
-CONFIG_MODEMMANAGER_WITH_MBIM=y
-CONFIG_MODEMMANAGER_WITH_NETIFD=y
-CONFIG_MODEMMANAGER_WITH_QMI=y
-CONFIG_MODEMMANAGER_WITH_QRTR=y
+      - name: Compile Firmware
+        id: compile
+        run: |
+          cd openwrt
+          echo "Compiling with $(nproc) threads..."
+          if make -j$(nproc); then
+            echo "Build success!"
+          else
+            echo "Build failed, trying with 1 core..."
+            make -j1 V=s
+          fi
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "FILE_DATE=$(date +"%Y%m%d_%H%M")" >> $GITHUB_ENV
 
-# LuCI Web Interface
-CONFIG_PACKAGE_luci=y
-CONFIG_PACKAGE_luci-ssl-openssl=y
-CONFIG_PACKAGE_luci-theme-bootstrap=y
-CONFIG_PACKAGE_luci-app-firewall=y
-CONFIG_PACKAGE_luci-app-opkg=y
+      - name: Prepare Artifacts
+        if: always()
+        run: |
+          cd openwrt/bin/targets/msm8916/*
+          echo "Files generated:"
+          ls -la
+          zip -r openwrt-j500g-${{ github.event.inputs.device }}-${{ env.FILE_DATE }}.zip *.bin *.img *.manifest *.dtb 2>/dev/null || true
+          echo "FIRMWARE_DIR=$PWD" >> $GITHUB_ENV
 
-# Network Packages
-CONFIG_PACKAGE_iwinfo=y
-CONFIG_PACKAGE_iw=y
-CONFIG_PACKAGE_wpad-basic-mbedtls=y
-CONFIG_PACKAGE_hostapd-common=y
-CONFIG_PACKAGE_dnsmasq-full=y
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openwrt-j500g-${{ github.event.inputs.device }}-${{ env.FILE_DATE }}
+          path: |
+            ${{ env.FIRMWARE_DIR }}/*.zip
+            ${{ env.FIRMWARE_DIR }}/*.bin
+            ${{ env.FIRMWARE_DIR }}/*.img
+            ${{ env.FIRMWARE_DIR }}/*.manifest
+            ${{ env.FIRMWARE_DIR }}/*.dtb
+          retention-days: 30
 
-# System Tools
-CONFIG_PACKAGE_htop=y
-CONFIG_PACKAGE_nano=y
-CONFIG_PACKAGE_tcpdump=y
-CONFIG_PACKAGE_curl=y
-CONFIG_PACKAGE_wget=y
-
-# USB Support
-CONFIG_PACKAGE_kmod-usb-core=y
-CONFIG_PACKAGE_kmod-usb2=y
-CONFIG_PACKAGE_kmod-usb3=y
-CONFIG_PACKAGE_kmod-usb-storage=y
-CONFIG_PACKAGE_kmod-usb-serial=y
-CONFIG_PACKAGE_kmod-usb-serial-option=y
-CONFIG_PACKAGE_kmod-usb-serial-wwan=y
-
-# Modem Support
-CONFIG_PACKAGE_kmod-qmi=y
-CONFIG_PACKAGE_kmod-qmi_wwan=y
-CONFIG_PACKAGE_kmod-qmi_wwan_q=y
-
-# Filesystem
-CONFIG_PACKAGE_kmod-fs-ext4=y
-CONFIG_PACKAGE_kmod-fs-vfat=y
-CONFIG_PACKAGE_kmod-fs-ntfs=y
-
-# Hardware Support
-CONFIG_PACKAGE_kmod-msm-pil=y
-CONFIG_PACKAGE_kmod-msm-wlan=y
-CONFIG_PACKAGE_kmod-msm-thermal=y
-CONFIG_PACKAGE_kmod-ath=y
-CONFIG_PACKAGE_kmod-ath9k=y
-CONFIG_PACKAGE_kmod-button-hotplug=y
-CONFIG_PACKAGE_kmod-ledtrig-heartbeat=y
-CONFIG_PACKAGE_kmod-ledtrig-netdev=y
-CONFIG_PACKAGE_kmod-leds-gpio=y
-CONFIG_PACKAGE_kmod-battery-msm=y
-CONFIG_PACKAGE_kmod-power-reset-msm=y
-CONFIG_PACKAGE_kmod-rtc-msm=y
-
-# Additional Features
-CONFIG_PACKAGE_zram-swap=y
-CONFIG_PACKAGE_ca-certificates=y
-CONFIG_PACKAGE_block-mount=y
-
-# Compression
-CONFIG_PACKAGE_gzip=y
-CONFIG_PACKAGE_unzip=y
-CONFIG_PACKAGE_zip=y
-
-# Kernel Settings
-CONFIG_KERNEL_DEBUG_FS=n
-CONFIG_KERNEL_DEBUG_KERNEL=n
-CONFIG_KERNEL_KALLSYMS=n
-CONFIG_KERNEL_PRINTK_TIME=y
-
-# Build Settings
-CONFIG_IMAGE_OPTIMIZE=y
-CONFIG_CCACHE=y
-CONFIG_STRIP_KERNEL_EXPORTS=y
-CONFIG_USE_MUSL=y
-CONFIG_TARGET_OPTIMIZATION="-Os -pipe -march=armv7-a -mtune=cortex-a53 -mfpu=neon-vfpv4"
-CONFIG_USE_SSTRIP=y
-CONFIG_SSTRIP_ARGS="-z"
-EOF
-
-        echo "✅ Konfigurasi selesai untuk Samsung J500G"
-
-    - name: Update & Install Feeds
-      run: |
-        cd openwrt
-        rm -rf tmp
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-
-    - name: Download Packages
-      run: |
-        cd openwrt
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec rm -f {} \; || true
-        echo "✅ Download selesai"
-
-    - name: Compile Firmware
-      id: compile
-      run: |
-        cd openwrt
-        echo "🔨 Memulai kompilasi dengan $(nproc) threads..."
-        
-        if make -j$(nproc); then
-          echo "✅ Build sukses!"
-        else
-          echo "⚠️ Build gagal, mencoba dengan 1 core..."
-          make -j1 V=s
-        fi
-        
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "FILE_DATE=$(date +"%Y%m%d_%H%M")" >> $GITHUB_ENV
-
-    - name: Prepare Artifacts
-      if: always()
-      run: |
-        cd openwrt/bin/targets/msm8916/*
-        
-        echo "=== 📁 File yang dihasilkan ==="
-        ls -la
-        
-        # Buat zip
-        zip -r openwrt-j500g-${{ github.event.inputs.device }}-${{ env.FILE_DATE }}.zip \
-          *.bin *.img *.manifest *.dtb 2>/dev/null || true
-        
-        echo "FIRMWARE_DIR=$PWD" >> $GITHUB_ENV
-
-    - name: Upload Firmware
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: openwrt-j500g-${{ github.event.inputs.device }}-${{ env.FILE_DATE }}
-        path: |
-          ${{ env.FIRMWARE_DIR }}/*.zip
-          ${{ env.FIRMWARE_DIR }}/*.bin
-          ${{ env.FIRMWARE_DIR }}/*.img
-          ${{ env.FIRMWARE_DIR }}/*.manifest
-          ${{ env.FIRMWARE_DIR }}/*.dtb
-        retention-days: 30
-
-    - name: Build Complete
-      if: always()
-      run: |
-        echo "========================================="
-        echo "✅ BUILD COMPLETE! 🎉"
-        echo "========================================="
-        echo "Device: Samsung J500G (${{ github.event.inputs.device }})"
-        echo "Status: ${{ steps.compile.outputs.status }}"
-        echo "========================================="
-        echo "📥 Download file dari Artifacts di bawah"
-        echo "========================================="
+      - name: Build Complete
+        if: always()
+        run: |
+          echo "========================================="
+          echo "BUILD COMPLETE!"
+          echo "========================================="
+          echo "Device: Samsung J500G (${{ github.event.inputs.device }})"
+          echo "Status: ${{ steps.compile.outputs.status }}"
+          echo "========================================="
+          echo "Download file from Artifacts below"
+          echo "========================================="
