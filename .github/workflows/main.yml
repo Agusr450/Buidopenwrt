@@ -25,9 +25,7 @@ jobs:
 
       - name: Clone ImmortalWrt Source
         run: |
-          git clone https://github.com/immortalwrt/immortalwrt.git immortalwrt
-          cd immortalwrt
-          git checkout immortalwrt-24.10
+          git clone --depth 1 https://github.com/immortalwrt/immortalwrt.git immortalwrt
 
       - name: Update Feeds
         run: |
