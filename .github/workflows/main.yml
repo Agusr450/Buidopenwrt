@@ -77,9 +77,19 @@ jobs:
 
       - name: Package into boot.img (Odin Flashable)
         run: |
-          mkdir -p output_img
-          KERNEL_PATH=$(find immortalwrt/bin/targets/ -name "Image" -o -name "vmlinux" | head -n 1)
+          echo "=== DEBUG: Mengecek file di root repository ==="
+          ls -la
           
+          echo "=== DEBUG: Mencari file kernel di folder bin/targets ==="
+          find immortalwrt/bin/targets/ -type f || true
+
+          mkdir -p output_img
+          
+          # Mencari kernel dengan pola fleksibel
+          KERNEL_PATH=$(find immortalwrt/bin/targets/ -type f \( -name "*Image*" -o -name "*vmlinux*" -o -name "*zImage*" \) ! -name "*.sig" | head -n 1)
+          
+          echo "Path Kernel terpilih: $KERNEL_PATH"
+
           if [ -f "$KERNEL_PATH" ] && [ -f "j500g.dtb" ]; then
             echo "Mengunduh tool mkbootimg resmi..."
             git clone https://android.googlesource.com/platform/system/tools/mkbootimg --depth 1
@@ -94,8 +104,12 @@ jobs:
               --tags_offset 0x01000000 \
               --pagesize 2048 \
               -o output_img/boot-j500g-immortalwrt.img
+            echo "Berhasil membuat boot.img!"
           else
-            echo "Gagal membuat boot.img: Kernel atau j500g.dtb tidak ditemukan."
+            echo "Peringatan: Kernel atau j500g.dtb tidak lengkap!"
+            if [ ! -f "j500g.dtb" ]; then
+              echo "-> File 'j500g.dtb' TIDAK ditemukan di root repository. Pastikan Anda sudah mengunggahnya dengan nama huruf kecil persis 'j500g.dtb'."
+            fi
           fi
           
           # Menyimpan seluruh file output target sebagai cadangan
