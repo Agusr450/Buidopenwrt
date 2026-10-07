@@ -1,17 +1,8 @@
-name: Build Custom ImmortalWrt for Samsung J500G
+name: Build Custom ImmortalWrt armsr-armv8 (IMG.XZ)
 
 on:
   repository_dispatch:
   workflow_dispatch:
-    inputs:
-      target_board:
-        description: 'Pilih Target Arsitektur / Board'
-        required: true
-        default: 'armvirt-armv7'
-        type: choice
-        options:
-          - armvirt-armv7
-          - armsr-armv8
 
 jobs:
   build:
@@ -29,7 +20,7 @@ jobs:
           sudo apt-get install -y build-essential clang flex bison g++ gawk \
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-distutils rsync unzip zlib1g-dev file wget swig libelf-dev \
-            libxml-parser-perl libgmp-dev libmpc-dev libmpfr-dev curl python3-pip ccache
+            libxml-parser-perl libgmp-dev libmpc-dev libmpfr-dev curl python3-pip ccache xz-utils
           sudo apt-get clean
 
       - name: Clone ImmortalWrt Source
@@ -42,10 +33,10 @@ jobs:
           path: |
             immortalwrt/dl
             immortalwrt/.ccache
-          key: immortalwrt-cache-${{ runner.os }}-${{ inputs.target_board }}-${{ hashFiles('packages.txt') }}
+          key: immortalwrt-cache-armsr-armv8-${{ hashFiles('packages.txt') }}
           restore-keys: |
-            immortalwrt-cache-${{ runner.os }}-${{ inputs.target_board }}-
-            immortalwrt-cache-${{ runner.os }}-
+            immortalwrt-cache-armsr-armv8-
+            immortalwrt-cache-
 
       - name: Update Feeds
         run: |
@@ -57,16 +48,9 @@ jobs:
         run: |
           cd immortalwrt
           
-          # Pengkondisian Target berdasarkan pilihan di GitHub Actions
-          if [ "${{ github.event.inputs.target_board }}" == "armsr-armv8" ]; then
-            echo "Memilih target: armsr / armv8"
-            echo "CONFIG_TARGET_armsr=y" >> .config
-            echo "CONFIG_TARGET_armsr_armv8=y" >> .config
-          else
-            echo "Memilih target: armvirt / armv7 (32-bit)"
-            echo "CONFIG_TARGET_armvirt=y" >> .config
-            echo "CONFIG_TARGET_armvirt_32=y" >> .config
-          fi
+          # Mengunci target ke armsr / armv8 (64-bit)
+          echo "CONFIG_TARGET_armsr=y" >> .config
+          echo "CONFIG_TARGET_armsr_armv8=y" >> .config
           
           # Aktifkan Ccache
           echo "CONFIG_CCACHE=y" >> .config
@@ -74,9 +58,6 @@ jobs:
           # Paket LuCI Web UI bawaan ImmortalWrt
           echo "CONFIG_PACKAGE_luci=y" >> .config
           echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
-          
-          # Format Filesystem Rootfs (ext4)
-          echo "CONFIG_TARGET_ROOTFS_EXT4_FILESYSTEM=y" >> .config
 
           # Membaca daftar paket dari packages.txt di root repository
           if [ -f "../packages.txt" ]; then
@@ -112,25 +93,21 @@ jobs:
           export CCACHE_DIR="$PWD/.ccache"
           make -j$(nproc) || make -j1 V=s
 
-      - name: Package into boot.img (Odin Flashable)
+      - name: Package into boot.img & Compress to img.xz
         run: |
           echo "=== DEBUG: Mengecek file di root repository ==="
           ls -la
-          
-          echo "=== DEBUG: Mencari file kernel di folder bin/targets ==="
-          find immortalwrt/bin/targets/ -type f || true
 
           mkdir -p output_img
           
+          # 1. Membuat boot.img kustom menggunakan dtb Anda
           KERNEL_PATH=$(find immortalwrt/bin/targets/ -type f \( -name "*Image*" -o -name "*vmlinux*" -o -name "*zImage*" \) ! -name "*.sig" | head -n 1)
           
-          echo "Path Kernel terpilih: $KERNEL_PATH"
-
           if [ -f "$KERNEL_PATH" ] && [ -f "j500g.dtb" ]; then
             echo "Mengunduh tool mkbootimg resmi..."
             git clone https://android.googlesource.com/platform/system/tools/mkbootimg --depth 1
             
-            echo "Membuat boot.img kustom dengan file dtb Anda..."
+            echo "Membuat boot.img kustom..."
             python3 mkbootimg/mkbootimg.py \
               --kernel "$KERNEL_PATH" \
               --dtb j500g.dtb \
@@ -139,19 +116,28 @@ jobs:
               --ramdisk_offset 0x02000000 \
               --tags_offset 0x01000000 \
               --pagesize 2048 \
-              -o output_img/boot-j500g-immortalwrt.img
-            echo "Berhasil membuat boot.img!"
-          else
-            echo "Peringatan: Kernel atau j500g.dtb tidak lengkap!"
-            if [ ! -f "j500g.dtb" ]; then
-              echo "-> File 'j500g.dtb' TIDAK ditemukan di root repository."
-            fi
+              -o output_img/boot-j500g-armsr-armv8.img
           fi
-          
+
+          # 2. Menyalin file image utama dari target armsr
           cp -r immortalwrt/bin/targets/*/*/* output_img/ || true
+
+          echo "=== Mengompresi file .img menjadi .img.xz ==="
+          # Mengubah semua file .img di folder output menjadi format .img.xz secara otomatis
+          for img_file in output_img/*.img; do
+            if [ -f "$img_file" ]; then
+              echo "Mengompresi: $(basename "$img_file")..."
+              xz -T0 -z "$img_file"
+            fi
+          done
+          
+          # Juga kompres boot.img kustom jika ingin berbentuk .img.xz
+          if [ -f "output_img/boot-j500g-armsr-armv8.img" ]; then
+            xz -T0 -z output_img/boot-j500g-armsr-armv8.img
+          fi
 
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-${{ inputs.target_board }}-j500g-firmware
+          name: immortalwrt-armsr-armv8-j500g-xz-firmware
           path: output_img/
